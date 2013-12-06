@@ -4,14 +4,17 @@ import Test.Hspec            (describe, it, shouldBe)
 import Test.Hspec.QuickCheck (property)
 import Data.List             (foldl')
 
-import Room  (freshRoom)
-import World ( LinkDirections (..)
-             , roomCount
-             , freshWorld
-             , addRoom
-             , accessibleRooms
-             , linkRooms
-             )
+import Player (freshPlayer)
+import Room   (freshRoom)
+import World  ( LinkDirections (..)
+              , roomCount
+              , freshWorld
+              , addRoom
+              , accessibleRooms
+              , roomsAccessibleToPlayer
+              , linkRooms
+              , placePlayerInRoom
+              )
 
 spec = describe "World" $ do
   describe "roomCount" $ do
@@ -27,13 +30,26 @@ spec = describe "World" $ do
       let (worldOne, roomOne) = addRoom freshWorld freshRoom
       let (worldTwo, roomTwo) = addRoom worldOne   freshRoom
       let world               = linkRooms worldTwo (roomOne, West) (roomTwo, East)
-      accessibleRooms world roomOne `shouldBe` [(roomTwo, West)]
-      accessibleRooms world roomTwo `shouldBe` [(roomOne, East)]
+      accessibleRooms world roomOne `shouldBe` Just [(roomTwo, West)]
+      accessibleRooms world roomTwo `shouldBe` Just [(roomOne, East)]
 
     it "only allows one way to get from one room to another in the same direction" $ do
       let (worldOne, roomOne) = addRoom freshWorld freshRoom
       let (worldTwo, roomTwo) = addRoom worldOne   freshRoom
       let worldThree          = linkRooms worldTwo   (roomOne, West) (roomTwo, East)
       let world               = linkRooms worldThree (roomOne, West) (roomTwo, East)
-      accessibleRooms world roomOne `shouldBe` [(roomTwo, West)]
-      accessibleRooms world roomTwo `shouldBe` [(roomOne, East)]
+      accessibleRooms world roomOne `shouldBe` Just [(roomTwo, West)]
+      accessibleRooms world roomTwo `shouldBe` Just [(roomOne, East)]
+
+  describe "roomsAccessibleToPlayer" $ do
+    it "is empty if the player isn't in a room" $ do
+      roomsAccessibleToPlayer freshWorld freshPlayer `shouldBe` Just []
+
+    it "is the rooms connected to the player's room otherwise" $ do
+      let (worldOne, roomOne) = addRoom freshWorld freshRoom
+      let (worldTwo, roomTwo) = addRoom worldOne   freshRoom
+      let world               = linkRooms worldTwo (roomOne, West) (roomTwo, East)
+      let Just player         = placePlayerInRoom world freshPlayer roomOne
+      roomsAccessibleToPlayer world player `shouldBe` accessibleRooms world roomOne
+      let Just player         = placePlayerInRoom world freshPlayer roomTwo
+      roomsAccessibleToPlayer world player `shouldBe` accessibleRooms world roomTwo

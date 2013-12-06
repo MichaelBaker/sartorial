@@ -3,10 +3,14 @@ module World ( LinkDirections (..)
              , freshWorld
              , addRoom
              , accessibleRooms
+             , roomsAccessibleToPlayer
              , linkRooms
+             , placePlayerInRoom
              ) where
 
-import Room (Room (..))
+import Room   (Room (..))
+import Player (Player (..))
+
 import qualified Data.Map.Lazy as M
 import qualified Data.Set      as S
 
@@ -30,13 +34,11 @@ addRoom world room = (world { nextRoomId = successorId, rooms = newRooms }, room
         roomWithId  = room { roomId = oldId }
         newRooms    = M.insert oldId roomWithId (rooms world)
 
-accessibleRooms world room = roomsWithDirections
-  where links                        = roomLinks world
-        idsAndDirections             = S.toList $ M.findWithDefault S.empty (roomId room) links
-        roomsWithDirections          = map idToRoom idsAndDirections
-        idToRoom (roomId, direction) = case M.lookup roomId (rooms world) of
-                                         Nothing   -> error $ "Tried to access a room that doesn't exist in 'accessibleRooms'\r" ++ show world
-                                         Just room -> (room, direction)
+accessibleRooms world room = accessibleRoomsByRoomId world $ roomId room
+
+roomsAccessibleToPlayer world player = case location player of
+                                         Nothing     -> Just []
+                                         Just roomId -> accessibleRoomsByRoomId world roomId
 
 linkRooms world (r1, d1) (r2, d2) = world { roomLinks = finalRoomLinks }
   where rId1 = roomId r1
@@ -45,3 +47,15 @@ linkRooms world (r1, d1) (r2, d2) = world { roomLinks = finalRoomLinks }
         updateRoomList roomId direction (Just links) = Just $ S.insert (roomId, direction) links
         newRoomLinks   = M.alter (updateRoomList rId2 d1) rId1 (roomLinks world)
         finalRoomLinks = M.alter (updateRoomList rId1 d2) rId2 newRoomLinks
+
+placePlayerInRoom world player room = if M.member (roomId room) (rooms world)
+                                        then Just player { location = Just $ roomId room }
+                                        else Nothing
+
+accessibleRoomsByRoomId world roomId = roomsWithDirections
+  where links                        = roomLinks world
+        idsAndDirections             = S.toList $ M.findWithDefault S.empty roomId links
+        roomsWithDirections          = sequence $ map idToRoom idsAndDirections
+        idToRoom (roomId, direction) = case M.lookup roomId (rooms world) of
+                                         Nothing   -> Nothing
+                                         Just room -> Just (room, direction)

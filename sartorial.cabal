@@ -12,7 +12,7 @@ library
   hs-source-dirs:      src
   build-depends:       base       == 4.6.*,
                        containers == 0.5.0.0
-  exposed-modules:     World, Room
+  exposed-modules:     World, Room, Player
 
 executable server
   main-is:             Main.hs
