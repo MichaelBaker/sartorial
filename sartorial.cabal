@@ -10,8 +10,9 @@ cabal-version:       >=1.8
 
 library
   hs-source-dirs:      src
-  build-depends:       base ==4.6.*
-  exposed-modules:     World
+  build-depends:       base       == 4.6.*,
+                       containers == 0.5.0.0
+  exposed-modules:     World, Room
 
 executable server
   main-is:             Main.hs
